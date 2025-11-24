@@ -13,11 +13,8 @@ RUN npm ci --only=production
 # Copy application files
 COPY . .
 
-# Create data directory with proper permissions
-RUN mkdir -p /data && chown -R node:node /data && chown -R node:node /app
-
-# Switch to non-root user
-USER node
+# Create data directory
+RUN mkdir -p /data
 
 # Expose port (default 3000, but configurable via env)
 EXPOSE 3000
@@ -26,5 +23,5 @@ EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
   CMD node -e "require('http').get('http://localhost:3000/api/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"
 
-# Start the server
+# Start the server as root (needed for volume mount permissions)
 CMD ["node", "server.js"]
