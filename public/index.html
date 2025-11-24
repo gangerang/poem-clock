@@ -173,8 +173,7 @@
     </div>
 
     <script>
-        // Prompts and messages
-        const POEM_PROMPT = "Write a very short (2-4 lines) minimalist poem about the time {timeString}. The poem must rhyme and be elegant and simple. Focus on the specific numbers in the time. The poem should feel contemplative and precise, like a haiku but with rhyme. The poem MUST NOT include AM, PM, hush, shadow, contemplation, or derivations of these words in the response. Respond with ONLY the poem text, no title or explanation.";
+        // Fallback poem in case of errors
         const FALLBACK_POEM = "At {timeString} the clock does chime,\nMarking moments, keeping time.";
 
         const poemDisplay = document.getElementById('poem-display');
@@ -182,9 +181,6 @@
         const soundToggle = document.getElementById('sound-toggle');
         let currentMinute = -1;
         let isTyping = false;
-        let prefetchedPoem = null;
-        let prefetchedForMinute = -1;
-        let isPrefetching = false;
         let soundEnabled = true;
 
         // Create audio context for typing sounds
@@ -229,62 +225,22 @@
             });
         }
 
-        async function generatePoem(time) {
-            const hour = time.getHours();
-            const minute = time.getMinutes();
-            const timeString = formatTime(time);
-
-            const prompt = POEM_PROMPT.replace('{timeString}', timeString);
-
+        // Fetch current poem from server cache
+        async function fetchCurrentPoem() {
             try {
-                // Call backend API
-                const response = await fetch('/api/generate-poem', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        prompt: prompt,
-                        timeString: timeString
-                    })
-                });
+                const response = await fetch('/api/current-poem');
 
                 if (!response.ok) {
                     throw new Error(`API returned ${response.status}`);
                 }
 
                 const data = await response.json();
-                return data.poem.trim();
+                return data.poem;
             } catch (error) {
-                console.error('Error generating poem:', error);
+                console.error('Error fetching poem:', error);
+                const now = new Date();
+                const timeString = formatTime(now);
                 return FALLBACK_POEM.replace('{timeString}', timeString);
-            }
-        }
-
-        async function prefetchNextPoem(currentTime) {
-            // Prefetch poem for the next minute
-            const nextMinute = new Date(currentTime);
-            nextMinute.setMinutes(nextMinute.getMinutes() + 1);
-            nextMinute.setSeconds(0);
-            nextMinute.setMilliseconds(0);
-
-            const nextMinuteValue = nextMinute.getMinutes();
-
-            // Only prefetch if we haven't already prefetched for this minute
-            if (prefetchedForMinute !== nextMinuteValue && !isPrefetching) {
-                isPrefetching = true;
-                console.log('Prefetching poem for next minute:', nextMinuteValue);
-
-                try {
-                    const poem = await generatePoem(nextMinute);
-                    prefetchedPoem = poem;
-                    prefetchedForMinute = nextMinuteValue;
-                    console.log('Prefetch complete for minute:', nextMinuteValue);
-                } catch (error) {
-                    console.error('Prefetch failed:', error);
-                } finally {
-                    isPrefetching = false;
-                }
             }
         }
 
@@ -307,37 +263,32 @@
         async function updateClock() {
             const now = new Date();
             const currentMinuteNow = now.getMinutes();
-            const currentSeconds = now.getSeconds();
 
             timeIndicator.textContent = formatTime(now);
 
-            // Prefetch next poem at 45 seconds
-            if (currentSeconds >= 45 && currentSeconds < 46) {
-                prefetchNextPoem(now);
-            }
-
-            // When minute changes, use prefetched poem if available
+            // When minute changes, fetch and display new poem
             if (currentMinuteNow !== currentMinute && !isTyping) {
                 currentMinute = currentMinuteNow;
+                console.log('Minute changed to:', currentMinuteNow, '- Fetching poem...');
 
-                let poem;
-                if (prefetchedPoem && prefetchedForMinute === currentMinuteNow) {
-                    // Use prefetched poem for instant display
-                    console.log('Using prefetched poem for minute:', currentMinuteNow);
-                    poem = prefetchedPoem;
-                    prefetchedPoem = null; // Clear after use
-                } else {
-                    // Fallback: generate poem on demand
-                    console.log('Generating poem on demand for minute:', currentMinuteNow);
-                    poem = await generatePoem(now);
-                }
-
+                const poem = await fetchCurrentPoem();
                 await typePoem(poem);
             }
         }
 
-        // Initial update
-        updateClock();
+        // Initial poem load
+        async function init() {
+            const poem = await fetchCurrentPoem();
+            await typePoem(poem);
+
+            // Update clock display
+            const now = new Date();
+            currentMinute = now.getMinutes();
+            timeIndicator.textContent = formatTime(now);
+        }
+
+        // Start the app
+        init();
 
         // Update every second
         setInterval(updateClock, 1000);
