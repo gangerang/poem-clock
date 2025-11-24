@@ -136,11 +136,34 @@
             from, to { border-color: transparent; }
             50% { border-color: #00ff88; }
         }
+
+        .sound-toggle {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            width: 8px;
+            height: 8px;
+            background: #00ff88;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 0 10px rgba(0,255,136,0.5);
+        }
+
+        .sound-toggle.muted {
+            background: #666;
+            box-shadow: 0 0 10px rgba(102,102,102,0.3);
+        }
+
+        .sound-toggle:hover {
+            transform: scale(1.3);
+        }
     </style>
 </head>
 <body>
     <div class="clock-container">
         <div class="display-frame">
+            <div class="sound-toggle" id="sound-toggle" title="Toggle sound"></div>
             <div class="power-light"></div>
             <div class="display-screen">
                 <div id="poem-display"></div>
@@ -150,44 +173,35 @@
     </div>
 
     <script>
-        const TRANSLATIONS = {
-            "en-US": {
-                "poemPrompt": "Write a very short (2-4 lines) minimalist poem about the time {timeString}. The poem must rhyme and be elegant and simple. Focus on the specific numbers in the time. The poem should feel contemplative and precise, like a haiku but with rhyme. Respond with ONLY the poem text, no title or explanation.",
-                "fallbackPoem": "At {timeString} the clock does chime,\nMarking moments, keeping time.",
-                "errorMessage": "Error generating poem:"
-            },
-            /* LOCALE_PLACEHOLDER_START */
-            "es-ES": {
-                "poemPrompt": "Escribe un poema muy corto (2-4 líneas) minimalista sobre la hora {timeString}. El poema debe rimar y ser elegante y simple. Enfócate en los números específicos de la hora. El poema debe sentirse contemplativo y preciso, como un haiku pero con rima. Responde SOLO con el texto del poema, sin título ni explicación.",
-                "fallbackPoem": "A las {timeString} el reloj suena,\nMarcando momentos, tiempo ordena.",
-                "errorMessage": "Error al generar poema:"
-            }
-            /* LOCALE_PLACEHOLDER_END */
-        };
-
-        const appLocale = '{{APP_LOCALE}}';
-        const browserLocale = navigator.languages?.[0] || navigator.language || 'en-US';
-        const findMatchingLocale = (locale) => {
-            if (TRANSLATIONS[locale]) return locale;
-            const lang = locale.split('-')[0];
-            const match = Object.keys(TRANSLATIONS).find(key => key.startsWith(lang + '-'));
-            return match || 'en-US';
-        };
-        const locale = (appLocale !== '{{APP_LOCALE}}') ? findMatchingLocale(appLocale) : findMatchingLocale(browserLocale);
-        const t = (key) => TRANSLATIONS[locale]?.[key] || TRANSLATIONS['en-US'][key] || key;
+        // Prompts and messages
+        const POEM_PROMPT = "Write a very short (2-4 lines) minimalist poem about the time {timeString}. The poem must rhyme and be elegant and simple. Focus on the specific numbers in the time. The poem should feel contemplative and precise, like a haiku but with rhyme. Respond with ONLY the poem text, no title or explanation.";
+        const FALLBACK_POEM = "At {timeString} the clock does chime,\nMarking moments, keeping time.";
 
         const poemDisplay = document.getElementById('poem-display');
         const timeIndicator = document.getElementById('time-indicator');
+        const soundToggle = document.getElementById('sound-toggle');
         let currentMinute = -1;
         let isTyping = false;
         let prefetchedPoem = null;
         let prefetchedForMinute = -1;
         let isPrefetching = false;
+        let soundEnabled = true;
 
         // Create audio context for typing sounds
         const audioContext = new (window.AudioContext || window.webkitAudioContext)();
 
+        // Sound toggle functionality
+        soundToggle.addEventListener('click', () => {
+            soundEnabled = !soundEnabled;
+            soundToggle.classList.toggle('muted', !soundEnabled);
+            if (soundEnabled && audioContext.state === 'suspended') {
+                audioContext.resume();
+            }
+        });
+
         function createTypingSound() {
+            if (!soundEnabled) return;
+
             const oscillator = audioContext.createOscillator();
             const gainNode = audioContext.createGain();
 
@@ -208,10 +222,10 @@
         }
 
         function formatTime(date) {
-            return date.toLocaleTimeString(locale, {
+            return date.toLocaleTimeString('en-US', {
                 hour: '2-digit',
                 minute: '2-digit',
-                hour12: locale.startsWith('en')
+                hour12: true
             });
         }
 
@@ -220,10 +234,10 @@
             const minute = time.getMinutes();
             const timeString = formatTime(time);
 
-            const prompt = t('poemPrompt').replace('{timeString}', timeString) + ` Please respond in ${locale} language`;
+            const prompt = POEM_PROMPT.replace('{timeString}', timeString);
 
             try {
-                // Call backend API instead of window.claude
+                // Call backend API
                 const response = await fetch('/api/generate-poem', {
                     method: 'POST',
                     headers: {
@@ -231,7 +245,7 @@
                     },
                     body: JSON.stringify({
                         prompt: prompt,
-                        locale: locale
+                        timeString: timeString
                     })
                 });
 
@@ -242,8 +256,8 @@
                 const data = await response.json();
                 return data.poem.trim();
             } catch (error) {
-                console.error(t('errorMessage'), error);
-                return t('fallbackPoem').replace('{timeString}', timeString);
+                console.error('Error generating poem:', error);
+                return FALLBACK_POEM.replace('{timeString}', timeString);
             }
         }
 

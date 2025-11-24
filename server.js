@@ -25,13 +25,15 @@ if (!OPENROUTER_API_KEY) {
 // API endpoint to generate poem
 app.post('/api/generate-poem', async (req, res) => {
   try {
-    const { prompt, locale } = req.body;
+    const { prompt, timeString } = req.body;
 
     if (!prompt) {
       return res.status(400).json({ error: 'Prompt is required' });
     }
 
-    console.log(`Generating poem for locale: ${locale || 'en-US'}`);
+    console.log(`\n${'='.repeat(60)}`);
+    console.log(`⏰ Generating poem for time: ${timeString || 'unknown'}`);
+    console.log(`${'='.repeat(60)}`);
 
     // Make request to OpenRouter
     const response = await fetch(OPENROUTER_API_URL, {
@@ -70,10 +72,16 @@ app.post('/api/generate-poem', async (req, res) => {
       throw new Error('No poem content in response');
     }
 
+    // Log the generated poem
+    console.log(`\n📜 Generated Poem:`);
+    console.log(`${'-'.repeat(60)}`);
+    console.log(poem.trim());
+    console.log(`${'-'.repeat(60)}\n`);
+
     res.json({ poem: poem.trim() });
 
   } catch (error) {
-    console.error('Error generating poem:', error.message);
+    console.error('❌ Error generating poem:', error.message);
     res.status(500).json({
       error: 'Failed to generate poem',
       message: error.message
