@@ -174,7 +174,7 @@
 
     <script>
         // Prompts and messages
-        const POEM_PROMPT = "Write a very short (2-4 lines) minimalist poem about the time {timeString}. The poem must rhyme and be elegant and simple. Focus on the specific numbers in the time. The poem should feel contemplative and precise, like a haiku but with rhyme. Respond with ONLY the poem text, no title or explanation.";
+        const POEM_PROMPT = "Write a very short (2-4 lines) minimalist poem about the time {timeString}. The poem must rhyme and be elegant and simple. Focus on the specific numbers in the time. The poem should feel contemplative and precise, like a haiku but with rhyme. The poem MUST NOT include AM, PM, hush, shadow, contemplation, or derivations of these words in the response. Respond with ONLY the poem text, no title or explanation.";
         const FALLBACK_POEM = "At {timeString} the clock does chime,\nMarking moments, keeping time.";
 
         const poemDisplay = document.getElementById('poem-display');
