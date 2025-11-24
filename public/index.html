@@ -169,6 +169,121 @@
         .sound-toggle:hover {
             transform: scale(1.3);
         }
+
+        /* Mobile responsive - maintain 1.875:1 aspect ratio */
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+
+            /* Portrait mode - fit to width */
+            @media (orientation: portrait) {
+                .clock-container {
+                    width: calc(100vw - 20px);
+                    height: calc((100vw - 20px) / 1.875);
+                    max-width: 600px;
+                    max-height: 320px;
+                    padding: 6vw;
+                }
+
+                .display-frame {
+                    padding: 4vw;
+                }
+
+                .display-screen {
+                    padding: 3vw;
+                }
+
+                #poem-display {
+                    font-size: clamp(16px, 4vw, 24px);
+                }
+
+                .time-indicator,
+                .poem-counter {
+                    font-size: clamp(12px, 2.5vw, 16px);
+                }
+
+                .poem-counter {
+                    bottom: clamp(20px, 5vw, 30px);
+                }
+
+                .time-indicator {
+                    bottom: clamp(8px, 2vw, 10px);
+                    right: clamp(10px, 3vw, 20px);
+                }
+
+                .poem-counter {
+                    right: clamp(10px, 3vw, 20px);
+                }
+
+                .power-light,
+                .sound-toggle {
+                    top: clamp(10px, 2.5vw, 15px);
+                }
+
+                .power-light {
+                    right: clamp(10px, 2.5vw, 15px);
+                }
+
+                .sound-toggle {
+                    left: clamp(10px, 2.5vw, 15px);
+                }
+            }
+
+            /* Landscape mode - fit to height */
+            @media (orientation: landscape) {
+                .clock-container {
+                    height: calc(100vh - 20px);
+                    width: calc((100vh - 20px) * 1.875);
+                    max-width: 600px;
+                    max-height: 320px;
+                    padding: 6vh;
+                }
+
+                .display-frame {
+                    padding: 4vh;
+                }
+
+                .display-screen {
+                    padding: 3vh;
+                }
+
+                #poem-display {
+                    font-size: clamp(14px, 3.5vh, 24px);
+                }
+
+                .time-indicator,
+                .poem-counter {
+                    font-size: clamp(10px, 2.2vh, 16px);
+                }
+
+                .poem-counter {
+                    bottom: clamp(15px, 4vh, 30px);
+                }
+
+                .time-indicator {
+                    bottom: clamp(6px, 1.5vh, 10px);
+                    right: clamp(8px, 2.5vh, 20px);
+                }
+
+                .poem-counter {
+                    right: clamp(8px, 2.5vh, 20px);
+                }
+
+                .power-light,
+                .sound-toggle {
+                    top: clamp(8px, 2vh, 15px);
+                }
+
+                .power-light {
+                    right: clamp(8px, 2vh, 15px);
+                }
+
+                .sound-toggle {
+                    left: clamp(8px, 2vh, 15px);
+                }
+            }
+        }
     </style>
 </head>
 <body>
