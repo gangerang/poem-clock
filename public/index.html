@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Rhyming Clock</title>
+    <title>Clock</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=VT323&display=swap');
         
@@ -107,6 +107,17 @@
             font-weight: 400;
             font-family: 'VT323', monospace;
         }
+
+        .poem-counter {
+            position: absolute;
+            bottom: 30px;
+            right: 20px;
+            color: #00ff88;
+            font-size: 16px;
+            opacity: 0.5;
+            font-weight: 400;
+            font-family: 'VT323', monospace;
+        }
         
         .power-light {
             position: absolute;
@@ -167,6 +178,7 @@
             <div class="power-light"></div>
             <div class="display-screen">
                 <div id="poem-display"></div>
+                <div class="poem-counter" id="poem-counter">0 poems</div>
                 <div class="time-indicator" id="time-indicator"></div>
             </div>
         </div>
@@ -178,10 +190,12 @@
 
         const poemDisplay = document.getElementById('poem-display');
         const timeIndicator = document.getElementById('time-indicator');
+        const poemCounter = document.getElementById('poem-counter');
         const soundToggle = document.getElementById('sound-toggle');
         let currentMinute = -1;
         let isTyping = false;
         let soundEnabled = true;
+        let poemCount = 0;
 
         // Create audio context for typing sounds
         const audioContext = new (window.AudioContext || window.webkitAudioContext)();
@@ -247,7 +261,7 @@
         async function typePoem(poem) {
             isTyping = true;
             poemDisplay.innerHTML = '';
-            
+
             for (let i = 0; i < poem.length; i++) {
                 poemDisplay.innerHTML = poem.substring(0, i + 1) + '<span class="typing-effect"></span>';
                 if (poem[i] !== ' ' && poem[i] !== '\n') {
@@ -255,9 +269,18 @@
                 }
                 await new Promise(resolve => setTimeout(resolve, 50));
             }
-            
+
             poemDisplay.innerHTML = poem;
             isTyping = false;
+
+            // Increment and update poem counter
+            poemCount++;
+            updatePoemCounter();
+        }
+
+        function updatePoemCounter() {
+            const plural = poemCount === 1 ? 'poem' : 'poems';
+            poemCounter.textContent = `${poemCount} ${plural}`;
         }
 
         async function updateClock() {
