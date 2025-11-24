@@ -2,6 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const fetch = require('node-fetch');
 const path = require('path');
+const fs = require('fs');
 const Database = require('better-sqlite3');
 
 const app = express();
@@ -25,6 +26,13 @@ if (!OPENROUTER_API_KEY) {
   console.error('ERROR: OPENROUTER_API_KEY environment variable is not set!');
   console.error('Please create a .env file with your OpenRouter API key.');
   process.exit(1);
+}
+
+// Ensure database directory exists
+const dbDir = path.dirname(DATABASE_PATH);
+if (!fs.existsSync(dbDir)) {
+  console.log(`Creating database directory: ${dbDir}`);
+  fs.mkdirSync(dbDir, { recursive: true });
 }
 
 // Initialize SQLite database

@@ -13,6 +13,12 @@ RUN npm ci --only=production
 # Copy application files
 COPY . .
 
+# Create data directory with proper permissions
+RUN mkdir -p /data && chown -R node:node /data && chown -R node:node /app
+
+# Switch to non-root user
+USER node
+
 # Expose port (default 3000, but configurable via env)
 EXPOSE 3000
 
