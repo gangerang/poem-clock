@@ -1,6 +1,10 @@
 # Use Node.js LTS version
 FROM node:18-alpine
 
+# Set timezone to Sydney
+ENV TZ=Australia/Sydney
+RUN apk add --no-cache tzdata
+
 # Set working directory
 WORKDIR /app
 

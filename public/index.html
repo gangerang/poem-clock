@@ -232,11 +232,19 @@
         }
 
         function formatTime(date) {
-            return date.toLocaleTimeString('en-US', {
+            return date.toLocaleTimeString('en-AU', {
                 hour: '2-digit',
                 minute: '2-digit',
-                hour12: true
+                hour12: true,
+                timeZone: 'Australia/Sydney'
             });
+        }
+
+        function getSydneyTime() {
+            const now = new Date();
+            // Convert to Sydney timezone
+            const sydneyTime = new Date(now.toLocaleString('en-US', { timeZone: 'Australia/Sydney' }));
+            return sydneyTime;
         }
 
         // Fetch current poem from server cache
@@ -252,7 +260,7 @@
                 return data.poem;
             } catch (error) {
                 console.error('Error fetching poem:', error);
-                const now = new Date();
+                const now = getSydneyTime();
                 const timeString = formatTime(now);
                 return FALLBACK_POEM.replace('{timeString}', timeString);
             }
@@ -284,7 +292,7 @@
         }
 
         async function updateClock() {
-            const now = new Date();
+            const now = getSydneyTime();
             const currentMinuteNow = now.getMinutes();
 
             timeIndicator.textContent = formatTime(now);
@@ -305,7 +313,7 @@
             await typePoem(poem);
 
             // Update clock display
-            const now = new Date();
+            const now = getSydneyTime();
             currentMinute = now.getMinutes();
             timeIndicator.textContent = formatTime(now);
         }

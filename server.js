@@ -81,13 +81,22 @@ const getPoemHistoryStmt = db.prepare(`
   SELECT * FROM poems ORDER BY timestamp DESC LIMIT ?
 `);
 
-// Format time in 12-hour format
+// Format time in 12-hour format (Sydney timezone)
 function formatTime(date) {
-  return date.toLocaleTimeString('en-US', {
+  return date.toLocaleTimeString('en-AU', {
     hour: '2-digit',
     minute: '2-digit',
-    hour12: true
+    hour12: true,
+    timeZone: 'Australia/Sydney'
   });
+}
+
+// Get current time in Sydney timezone
+function getSydneyTime() {
+  const now = new Date();
+  // Convert to Sydney timezone
+  const sydneyTime = new Date(now.toLocaleString('en-US', { timeZone: 'Australia/Sydney' }));
+  return sydneyTime;
 }
 
 // Generate poem using OpenRouter API
@@ -194,7 +203,7 @@ async function generateAndCachePoem(date) {
 
 // Prefetch next minute's poem
 async function prefetchNextMinute() {
-  const now = new Date();
+  const now = getSydneyTime();
   const nextMinute = new Date(now);
   nextMinute.setMinutes(nextMinute.getMinutes() + 1);
   nextMinute.setSeconds(0);
@@ -224,7 +233,7 @@ function startPoemGenerator() {
   console.log('🎬 Starting background poem generator...');
 
   setInterval(async () => {
-    const now = new Date();
+    const now = getSydneyTime();
     const currentMinute = now.getMinutes();
     const currentSeconds = now.getSeconds();
 
@@ -266,7 +275,7 @@ function startPoemGenerator() {
   }, 1000); // Check every second
 
   // Generate initial poem on startup
-  const now = new Date();
+  const now = getSydneyTime();
   generateAndCachePoem(now).then(() => {
     console.log('✅ Initial poem generated');
     // Start prefetch after initial generation
