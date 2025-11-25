@@ -223,9 +223,26 @@
 
         function getSydneyTime() {
             const now = new Date();
-            // Convert to Sydney timezone
-            const sydneyTime = new Date(now.toLocaleString('en-US', { timeZone: 'Australia/Sydney' }));
-            return sydneyTime;
+
+            // Format to get Sydney time components
+            const sydneyString = now.toLocaleString('en-AU', {
+                timeZone: 'Australia/Sydney',
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                hour12: false
+            });
+
+            // Parse DD/MM/YYYY, HH:mm:ss format
+            const [datePart, timePart] = sydneyString.split(', ');
+            const [day, month, year] = datePart.split('/');
+            const [hour, minute, second] = timePart.split(':');
+
+            // Create date representing Sydney time
+            return new Date(year, month - 1, day, hour, minute, second);
         }
 
         // Fetch current poem from server cache

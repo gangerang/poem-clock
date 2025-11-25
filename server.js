@@ -67,6 +67,8 @@ let nextPoem = {
   minute: -1
 };
 
+let isPrefetching = false;
+
 // Prepared statements for better performance
 const insertPoemStmt = db.prepare(`
   INSERT INTO poems (timestamp, time_string, poem, model_used)
@@ -94,9 +96,27 @@ function formatTime(date) {
 // Get current time in Sydney timezone
 function getSydneyTime() {
   const now = new Date();
-  // Convert to Sydney timezone
-  const sydneyTime = new Date(now.toLocaleString('en-US', { timeZone: 'Australia/Sydney' }));
-  return sydneyTime;
+
+  // Format to get Sydney time components
+  const sydneyString = now.toLocaleString('en-AU', {
+    timeZone: 'Australia/Sydney',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false
+  });
+
+  // Parse DD/MM/YYYY, HH:mm:ss format
+  const [datePart, timePart] = sydneyString.split(', ');
+  const [day, month, year] = datePart.split('/');
+  const [hour, minute, second] = timePart.split(':');
+
+  // Create date representing Sydney time
+  // Note: This creates a Date object in local time that represents the Sydney time values
+  return new Date(year, month - 1, day, hour, minute, second);
 }
 
 // Generate poem using OpenRouter API
@@ -203,6 +223,10 @@ async function generateAndCachePoem(date) {
 
 // Prefetch next minute's poem
 async function prefetchNextMinute() {
+  if (isPrefetching) {
+    return; // Already prefetching, skip
+  }
+
   const now = getSydneyTime();
   const nextMinute = new Date(now);
   nextMinute.setMinutes(nextMinute.getMinutes() + 1);
@@ -213,18 +237,26 @@ async function prefetchNextMinute() {
 
   // Only prefetch if we haven't already
   if (nextPoem.minute !== nextMinuteValue) {
-    console.log(`🔮 Prefetching poem for next minute: ${nextMinuteValue}`);
+    isPrefetching = true;
     const timeString = formatTime(nextMinute);
-    const poem = await generatePoemFromAPI(timeString);
+    console.log(`🔮 Prefetching poem for next minute: ${nextMinuteValue} (${timeString})`);
 
-    nextPoem = {
-      poem,
-      minute: nextMinuteValue,
-      timeString,
-      timestamp: nextMinute.getTime()
-    };
+    try {
+      const poem = await generatePoemFromAPI(timeString);
 
-    console.log(`✅ Prefetch complete for minute: ${nextMinuteValue}`);
+      nextPoem = {
+        poem,
+        minute: nextMinuteValue,
+        timeString,
+        timestamp: nextMinute.getTime()
+      };
+
+      console.log(`✅ Prefetch complete for minute: ${nextMinuteValue} (${timeString})`);
+    } catch (error) {
+      console.error('❌ Prefetch failed:', error);
+    } finally {
+      isPrefetching = false;
+    }
   }
 }
 
@@ -237,33 +269,42 @@ function startPoemGenerator() {
     const currentMinute = now.getMinutes();
     const currentSeconds = now.getSeconds();
 
-    // At 45 seconds, prefetch next minute's poem
-    if (currentSeconds === 45) {
+    // At 15 seconds, prefetch next minute's poem (use range for reliability)
+    if (currentSeconds >= 15 && currentSeconds < 16 && !isPrefetching) {
       prefetchNextMinute();
     }
 
-    // At the start of a new minute (0 seconds)
-    if (currentSeconds === 0 && currentMinute !== currentPoem.minute) {
-      console.log(`\n🕐 Minute changed to: ${currentMinute}`);
+    // At the start of a new minute (use range for reliability)
+    if (currentSeconds >= 0 && currentSeconds < 1 && currentMinute !== currentPoem.minute) {
+      const currentTimeString = formatTime(now);
+      console.log(`\n🕐 Minute changed to: ${currentMinute} (${currentTimeString}) - UTC: ${new Date().toISOString()}`);
 
       // Check if we have a prefetched poem
       if (nextPoem.minute === currentMinute && nextPoem.poem) {
-        console.log(`✨ Using prefetched poem for minute: ${currentMinute}`);
-        currentPoem = {
-          timeString: nextPoem.timeString,
-          poem: nextPoem.poem,
-          timestamp: nextPoem.timestamp,
-          minute: currentMinute
-        };
+        // Validate: Make sure prefetched poem time matches current time
+        if (nextPoem.timeString === currentTimeString) {
+          console.log(`✨ Using prefetched poem for minute: ${currentMinute} (${currentTimeString})`);
+          currentPoem = {
+            timeString: nextPoem.timeString,
+            poem: nextPoem.poem,
+            timestamp: nextPoem.timestamp,
+            minute: currentMinute
+          };
 
-        // Save prefetched poem to database
-        savePoemToDatabase(nextPoem.timeString, nextPoem.poem, nextPoem.timestamp);
+          // Save prefetched poem to database
+          savePoemToDatabase(nextPoem.timeString, nextPoem.poem, nextPoem.timestamp);
 
-        // Clear prefetch cache
-        nextPoem = { poem: '', minute: -1 };
+          // Clear prefetch cache
+          nextPoem = { poem: '', minute: -1 };
+        } else {
+          // Time mismatch - prefetched poem is for wrong time
+          console.log(`⚠️ Prefetched poem time mismatch! Expected ${currentTimeString}, got ${nextPoem.timeString}. Generating fresh poem...`);
+          await generateAndCachePoem(now);
+          nextPoem = { poem: '', minute: -1 }; // Clear bad cache
+        }
       } else {
         // Fallback: generate on demand
-        console.log(`⚠️  No prefetched poem, generating on demand...`);
+        console.log(`⚠️ No prefetched poem, generating on demand for ${currentTimeString}...`);
         await generateAndCachePoem(now);
       }
 
