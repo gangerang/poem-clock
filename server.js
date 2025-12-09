@@ -14,7 +14,7 @@ app.use(express.static('public'));
 
 // OpenRouter configuration
 const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
-const OPENROUTER_MODEL = process.env.OPENROUTER_MODEL || 'anthropic/claude-3.5-sonnet';
+const OPENROUTER_MODEL = process.env.OPENROUTER_MODEL || 'openai/gpt-oss-20b:free';
 const OPENROUTER_API_URL = 'https://openrouter.ai/api/v1/chat/completions';
 
 // Database configuration
@@ -144,8 +144,12 @@ async function generatePoemFromAPI(timeString) {
             content: prompt
           }
         ],
-        temperature: 0.8,
-        max_tokens: 200
+        temperature: 0.5,
+        max_tokens: 2000,
+        reasoning: {
+          effort: 'low',
+          exclude: true    // <-- Hides chain-of-thought and frees tokens for content
+        }
       })
     });
 
