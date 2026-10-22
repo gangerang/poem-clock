@@ -1,5 +1,5 @@
 # Use Node.js LTS version
-FROM node:18-alpine
+FROM node:24-alpine
 
 # Set timezone to Sydney
 ENV TZ=Australia/Sydney
